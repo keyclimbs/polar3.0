@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String?            @unique
+  maxHeartRate      Int                @default(190)
+  restingHeartRate  Int                @default(50)
+  sleepDurationGoal Int                @default(480)
+  sex               String             @default("male")
+  preferredSports   String             @default("[]")
+  connections       PolarConnection[]
+  summaries         DailySummary[]
+  exercises         Exercise[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model PolarConnection {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  polarUserId           String?
+  memberId              String?
+  encryptedAccessToken  String
+  syncCursor            String?
+  registrationConfirmed Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model DailySummary {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                 DateTime
+  recoveryScore        Float?
+  totalStrain          Float?
+  sleepScore           Float?
+  sleepingRhr          Float?
+  sleepingRmssd        Float?
+  dataCompleteness     Float    @default(0)
+  provenance           String
+  createdAt            DateTime @default(now())
+  @@unique([userId, date])
+}
+
+model SleepSession {
+  id             String   @id @default(cuid())
+  polarSleepId   String   @unique
+  date           DateTime
+  bedtime        DateTime
+  wakeTime       DateTime
+  totalDuration  Int
+  asleepDuration Int
+  deepMinutes    Int      @default(0)
+  lightMinutes   Int      @default(0)
+  remMinutes     Int      @default(0)
+  awakeMinutes   Int      @default(0)
+  rawJson        String   @default("{}")
+}
+
+model NightlyRecharge {
+  id               String   @id @default(cuid())
+  polarUserId      String?
+  date             DateTime @unique
+  ansCharge        String?
+  ansScore         Float?
+  sleepCharge      String?
+  hrvSamples       String   @default("[]")
+  breathingRate    Float?
+  rawJson          String   @default("{}")
+}
+
+model Exercise {
+  id                 String   @id @default(cuid())
+  polarExerciseId    String   @unique
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportCategory      String
+  startTime          DateTime
+  durationSeconds    Int
+  activeCalories     Int?
+  avgHeartRate       Int?
+  maxHeartRate       Int?
+  trimpScore         Float?
+  cardiovascularStrain Float?
+  manualSrpe         Float?
+  workoutNotes       String?
+  zoneDurations      String   @default("{}")
+  rawJson            String   @default("{}")
+}
+
+model HeartRateSample {
+  id        String   @id @default(cuid())
+  date      DateTime
+  timestamp DateTime
+  heartRate Int
+  rawJson   String   @default("{}")
+  @@index([date])
+}
+
+model MetricBaseline {
+  id           String   @id @default(cuid())
+  metricType   String
+  windowLength Int
+  mean         Float
+  standardDev  Float
+  sampleCount  Int
+  updatedAt    DateTime @updatedAt
+  @@unique([metricType, windowLength])
+}
